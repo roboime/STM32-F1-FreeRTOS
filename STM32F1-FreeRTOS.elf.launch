@@ -20,8 +20,8 @@
 <booleanAttribute key="com.atollic.hardwaredebug.launch.startServer" value="true"/>
 <booleanAttribute key="com.atollic.hardwaredebug.launch.swd_mode" value="true"/>
 <stringAttribute key="com.atollic.hardwaredebug.launch.swv_port" value="61235"/>
-<stringAttribute key="com.atollic.hardwaredebug.launch.swv_trace_div" value="120"/>
-<stringAttribute key="com.atollic.hardwaredebug.launch.swv_trace_hclk" value="120000000"/>
+<stringAttribute key="com.atollic.hardwaredebug.launch.swv_trace_div" value="36"/>
+<stringAttribute key="com.atollic.hardwaredebug.launch.swv_trace_hclk" value="72000000"/>
 <booleanAttribute key="com.atollic.hardwaredebug.launch.swv_wait_for_sync" value="true"/>
 <intAttribute key="com.atollic.hardwaredebug.launch.trace_system" value="0"/>
 <booleanAttribute key="com.atollic.hardwaredebug.launch.useRemoteTarget" value="true"/>

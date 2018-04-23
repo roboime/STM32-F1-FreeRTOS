@@ -56,6 +56,8 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
+
+
 I2C_HandleTypeDef hi2c2;
 
 RTC_HandleTypeDef hrtc;
@@ -132,7 +134,7 @@ int main(void)
   MX_RTC_Init();
 
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -396,7 +398,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1000;
+  htim2.Init.Period = 0xffff;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
@@ -476,7 +478,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 0;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 1000;
+  htim4.Init.Period = 0xffff;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
@@ -575,10 +577,10 @@ void StartDefaultTask(void const * argument)
 
 
   htim3.Instance->CCR3=0;
-  htim3.Instance->CCR4=100;
+  htim3.Instance->CCR4=0;
 
   htim1.Instance->CCR1=0;
-  htim1.Instance->CCR2=100;
+  htim1.Instance->CCR2=0;
 
   HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_4);
@@ -601,25 +603,93 @@ void StartDefaultTask(void const * argument)
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	static uint16_t m0p, m1p;
+
+	static int16_t m1p, m2p,old_c1=0,old_c2=0;
+
+	    //valor aproximado do raio da roda, em metros
+	static const float R_roda = 0.030;
+	static const float PI = 3.1415926;
+	    //valor do tempo em segundos
+	static const float Tempo = 0.013;
+		//número de divisões do encoder
+	static const float ENC_DIV = 20;
+		//para cada 75 giros do motor, a roda gira 1 vez
+	static const float RED = 75;
+	static float CALCULO = 0.0f;
+	if(CALCULO==0.0f) CALCULO=(2*PI*R_roda/(Tempo*ENC_DIV*RED));
+	static float speed_m1= 0.0f;
+	static float speed_m2= 0.0f;
+	static float e_m1 =0.0f,e_m2=0.0f;
+	static float pwm_m1 =0.0f,pwm_m2=0.0f;
+	static float kp=50.0f;
+	static float velocidade_des =.5;
 
 	if(htim==&htim1){
-		m0p=htim2.Instance->CNT;
-		m1p=htim4.Instance->CNT;
-		if(m0p!=m1p){
-			m0p=m1p;
+		static uint8_t i=0;
+		m1p=(int16_t)(htim2.Instance->CNT);
+		m2p=(int16_t)(htim4.Instance->CNT);
+
+		if(i++% 13==0){
+			i=1;
+//			m1p=-1;
+//			m2p=-1;
+			speed_m1= CALCULO*((int16_t)(m1p-old_c1));
+			speed_m2= CALCULO*((int16_t)(m2p-old_c2));
+
+
+			e_m1= velocidade_des-speed_m1;
+			pwm_m1+=e_m1*kp;
+			if(pwm_m1>1000.0f)
+				pwm_m1=1000.0f;
+			if(pwm_m1<-1000.0f)
+				pwm_m1=-1000.0f;
+			if(pwm_m1>=0.0f){
+				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, DISABLE);
+				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, ENABLE);
+				htim3.Instance->CCR3=0;
+				htim3.Instance->CCR4=(uint16_t)pwm_m1;
+
+			} else {
+				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, ENABLE);
+				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, DISABLE);
+				htim3.Instance->CCR3=(uint16_t)(-pwm_m1);
+				htim3.Instance->CCR4=0;
+			}
+
+			e_m2= velocidade_des-speed_m2;
+			pwm_m2+=e_m2*kp;
+			if(pwm_m2>1000.0f)
+				pwm_m2=1000.0f;
+			if(pwm_m2<-1000.0f)
+				pwm_m2=-1000.0f;
+			if(pwm_m2>=0.0f){
+				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, DISABLE);
+				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, ENABLE);
+				htim1.Instance->CCR1=0;
+				htim1.Instance->CCR2=(uint16_t)pwm_m2;
+
+			} else {
+				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, ENABLE);
+				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, DISABLE);
+				htim1.Instance->CCR1=(uint16_t)(-pwm_m2);
+				htim1.Instance->CCR2=0;
+			}
+			old_c1=m1p;
+			old_c2=m2p;
 		}
+
 	}
 }
+
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @param  None
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @param  None
+ * @retval None
+ */
 void _Error_Handler(char * file, int line)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* User can add his own implementation to report the HAL error return state */
   while(1) 
   {
   }
