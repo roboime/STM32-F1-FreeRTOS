@@ -131,7 +131,7 @@ int main(void)
   MX_TIM1_Init();
   MX_SPI2_Init();
   MX_I2C2_Init();
-  MX_RTC_Init();
+//  MX_RTC_Init();
 
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
@@ -328,6 +328,7 @@ static void MX_SPI2_Init(void)
 }
 
 /* TIM1 init function */
+/* Timer utilizado para PWM */
 static void MX_TIM1_Init(void)
 {
 
@@ -593,7 +594,7 @@ void StartDefaultTask(void const * argument)
   HAL_TIM_Base_Start_IT(&htim1);
 
 
-  for(;;)
+  for(;;)/*Não entendi direito*/
   {
     osDelay(500);
     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
@@ -623,6 +624,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	static float pwm_m1 =0.0f,pwm_m2=0.0f;
 	static float kp=50.0f;
 	static float velocidade_des =.5;
+	//SPI
+	static float dado;
+
+hspi2.Instance-> CR1=(hspi2.Instance->CR1|0x0020); //SPE=1
+HAL_GPIO_WritePin(SPI2_NSS_GPIO_Port,SPI2_NSS_Pin,DISABLE); // habilitar a recepção do slave
+//hspi2.Instance->DR=2;//power up entra no modo standby I, segundo bit do reg CONFIG
+//*((int*)(0x40003800+0x0C))=0x0017;
+hspi2.Instance->DR=(uint16_t)23; // read register FIFO status 0x17
+
+if ((hspi2.Instance->SR & 0x0001)== 1)//espero terminar a recepção,  ler RX buffer not empty
+{
+	dado = hspi2.Instance->DR;
+
+}
+	//end of spi
+
 
 	if(htim==&htim1){
 		static uint8_t i=0;
@@ -638,7 +655,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
 
 			e_m1= velocidade_des-speed_m1;
-			pwm_m1+=e_m1*kp;
+			pwm_m1-=e_m1*kp;
 			if(pwm_m1>1000.0f)
 				pwm_m1=1000.0f;
 			if(pwm_m1<-1000.0f)
@@ -693,7 +710,7 @@ void _Error_Handler(char * file, int line)
   while(1) 
   {
   }
-  /* USER CODE END Error_Handler_Debug */ 
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef USE_FULL_ASSERT
@@ -718,10 +735,10 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
