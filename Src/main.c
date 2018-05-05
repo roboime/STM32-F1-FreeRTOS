@@ -192,10 +192,10 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_OFF;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
@@ -315,7 +315,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4; // mudamos para taxa menor que 10Mbs (72/2/1/4) 1b/s
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -328,7 +328,6 @@ static void MX_SPI2_Init(void)
 }
 
 /* TIM1 init function */
-/* Timer utilizado para PWM */
 static void MX_TIM1_Init(void)
 {
 
@@ -565,6 +564,11 @@ static void MX_GPIO_Init(void)
 /* StartDefaultTask function */
 void StartDefaultTask(void const * argument)
 {
+	static int dado=0;
+	static int status=0;
+	static int debug=0;
+	//SPI
+
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
 
@@ -594,10 +598,36 @@ void StartDefaultTask(void const * argument)
   HAL_TIM_Base_Start_IT(&htim1);
 
 
-  for(;;)/*Não entendi direito*/
+  for(;;)
   {
-    osDelay(500);
+	osDelay(500);
     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+
+
+//    HAL_SPI_Transmit(&hspi2, "a", 1, 1000);
+    hspi2.Instance->CR1 |= 0x00000040; // SPE =1
+//    __HAL_SPI_ENABLE(&hspi2);
+    //	dado=(int16_t)hspi2.Instance->CR1;
+	HAL_GPIO_WritePin(SPI2_NSS_GPIO_Port,SPI2_NSS_Pin,DISABLE); // habilitar a recepção do slave
+	//status=hspi2.Instance->DR;
+	//hspi2.Instance->DR=2; // power up entra no modo standby I ,segundo bit do reg CONFIG
+	while((hspi2.Instance->SR & 0x0002)== 0) // While TXE==0, travo o código esperando TXE ser 1 sinalizando que está vazio
+	{
+
+	}
+	hspi2.Instance->DR=1; // gravo comando no buffer TX,  read register EN_AA status espero ler 0x3F
+	dado=hspi2.State;
+	debug=hspi2.Instance->SR;
+	while((hspi2.Instance->SR & 0x0001)==0)// Travo o código no while até RX não estar mais vazio, apto para leitura.
+	{
+
+	}
+	status=hspi2.Instance->DR;
+
+	//if((hspi2))
+	//dado = hspi2.Instance->DR;
+
+	// end of spi
   }
   /* USER CODE END 5 */ 
 }
@@ -624,21 +654,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	static float pwm_m1 =0.0f,pwm_m2=0.0f;
 	static float kp=50.0f;
 	static float velocidade_des =.5;
-	//SPI
-	static float dado;
-
-hspi2.Instance-> CR1=(hspi2.Instance->CR1|0x0020); //SPE=1
-HAL_GPIO_WritePin(SPI2_NSS_GPIO_Port,SPI2_NSS_Pin,DISABLE); // habilitar a recepção do slave
-//hspi2.Instance->DR=2;//power up entra no modo standby I, segundo bit do reg CONFIG
-//*((int*)(0x40003800+0x0C))=0x0017;
-hspi2.Instance->DR=(uint16_t)23; // read register FIFO status 0x17
-
-if ((hspi2.Instance->SR & 0x0001)== 1)//espero terminar a recepção,  ler RX buffer not empty
-{
-	dado = hspi2.Instance->DR;
-
-}
-	//end of spi
 
 
 	if(htim==&htim1){
@@ -655,7 +670,7 @@ if ((hspi2.Instance->SR & 0x0001)== 1)//espero terminar a recepção,  ler RX buff
 
 
 			e_m1= velocidade_des-speed_m1;
-			pwm_m1-=e_m1*kp;
+			pwm_m1+=e_m1*kp;
 			if(pwm_m1>1000.0f)
 				pwm_m1=1000.0f;
 			if(pwm_m1<-1000.0f)
@@ -696,6 +711,8 @@ if ((hspi2.Instance->SR & 0x0001)== 1)//espero terminar a recepção,  ler RX buff
 		}
 
 	}
+
+
 }
 
 /**

@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=C:/Users/efisi/Desktop/Neto/Trabalho/ROBOIME/Firm/FreeRTOS/STM32-F1-FreeRTOS/Inc
+HeaderPath=C:/Users/João/Documents/ROBOIME/VSS/STM32-F1-FreeRTOS-master/Inc
 HeaderFiles=FreeRTOSConfig.h;usb_device.h;usbd_conf.h;usbd_desc.h;usbd_cdc_if.h;stm32f1xx_it.h;stm32f1xx_hal_conf.h;main.h;
-SourcePath=C:/Users/efisi/Desktop/Neto/Trabalho/ROBOIME/Firm/FreeRTOS/STM32-F1-FreeRTOS/Src
+SourcePath=C:/Users/João/Documents/ROBOIME/VSS/STM32-F1-FreeRTOS-master/Src
 SourceFiles=FreeRTOSConfig.h;usb_device.h;usbd_conf.h;usbd_desc.h;usbd_cdc_if.h;stm32f1xx_it.h;stm32f1xx_hal_conf.h;main.h;freertos.c;usb_device.c;usbd_conf.c;usbd_desc.c;usbd_cdc_if.c;stm32f1xx_it.c;stm32f1xx_hal_msp.c;main.c;
 
 [PreviousLibFiles]
