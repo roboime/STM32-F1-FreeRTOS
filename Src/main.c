@@ -626,7 +626,6 @@ void StartDefaultTask(void const * argument)
 
 	//if((hspi2))
 	//dado = hspi2.Instance->DR;
-
 	// end of spi
   }
   /* USER CODE END 5 */ 
@@ -667,7 +666,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 //			m2p=-1;
 			speed_m1= CALCULO*((int16_t)(m1p-old_c1));
 			speed_m2= CALCULO*((int16_t)(m2p-old_c2));
-
 
 			e_m1= velocidade_des-speed_m1;
 			pwm_m1+=e_m1*kp;

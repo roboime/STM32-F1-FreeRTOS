@@ -8,6 +8,7 @@
 #ifndef SPI_STM32F103_H_
 #define SPI_STM32F103_H_
 
+#include<spi.h>
 #include<stm32f1xx_hal_spi.h>
 #include "stm32f1xx_hal.h"
 
