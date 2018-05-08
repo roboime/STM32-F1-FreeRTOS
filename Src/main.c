@@ -50,6 +50,7 @@
 #include "stm32f1xx_hal.h"
 #include "cmsis_os.h"
 #include "usb_device.h"
+#include "time_functions.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -229,7 +230,7 @@ void SystemClock_Config(void)
 
     /**Configure the Systick interrupt time 
     */
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000); // parâmetro é o número de ticks entre duas interrupções -> dá 1 ms
 
     /**Configure the Systick 
     */
@@ -624,10 +625,17 @@ void StartDefaultTask(void const * argument)
 	}
 	status=hspi2.Instance->DR;
 
+	extern uint32_t LocalTime ; // usado para o delayms
+	void HAL_SYSTICK_IRQHandler(void)
+	{
+		LocalTime ++;
+		HAL_SYSTICK_Callback();
+	}
+
 	//if((hspi2))
 	//dado = hspi2.Instance->DR;
 	// end of spi
-  }
+
   /* USER CODE END 5 */ 
 }
 
@@ -726,6 +734,7 @@ void _Error_Handler(char * file, int line)
   {
   }
   /* USER CODE END Error_Handler_Debug */
+}
 }
 
 #ifdef USE_FULL_ASSERT

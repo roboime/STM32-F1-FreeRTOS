@@ -71,15 +71,12 @@ protected:
 	uint8_t read(uint8_t command, uint8_t *buffer, uint8_t size);
 
 	SPI *_spi;
-	GPIO_TypeDef *GPIOx_SS;
-	uint16_t GPIO_Pin_SS;
-	GPIO_TypeDef *GPIOx_CE;
-	uint16_t GPIO_Pin_CE;
-	GPIO_TypeDef *GPIOx_NIRQ;
-	uint16_t GPIO_Pin_NIRQ;
-//	IO_Pin *_SS_PIN;
-//	IO_Pin *_NIRQ_PIN;
-//	IO_Pin *_CE_PIN;
+	GPIO_TypeDef *_SS_PORT;
+	uint16_t _SS_PIN ;
+	GPIO_TypeDef *_CE_PORT;
+	uint16_t _CE_PIN;
+	GPIO_TypeDef *_NIRQ_PORT;
+	uint16_t _NIRQ_PIN;
 	CircularBuffer<uint8_t,false> _rxbuffer;
 	CircularBuffer<uint8_t,false> _txbuffer;
 

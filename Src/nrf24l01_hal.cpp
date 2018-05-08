@@ -1,6 +1,7 @@
 //#include <radio/bsp.h>
-#include <nrf24l01_hal.h>
-//#include <time_functions.h>
+
+#include "nrf24l01_hal.h"
+#include "time_functions.h"
 
 NRF24L01P::NRF24L01P(SPI &spi,GPIO_TypeDef *GPIOx_SS, uint16_t GPIO_Pin_SS, GPIO_TypeDef *GPIOx_CE,
 		uint16_t GPIO_Pin_CE, GPIO_TypeDef *GPIOx_NIRQ, uint16_t GPIO_Pin_NIRQ):		// IO_Pin &SS_PIN, IO_Pin &CE_PIN, IO_Pin &NIRQ_PIN):
@@ -45,7 +46,7 @@ void NRF24L01P::TxPackage(uint8_t* data, uint16_t size, uint32_t frequency, MODE
 	SetRXFrequency(frequency);
 
 	write_tx_payload(data, size);
-	HAL_GPIO_WritePin(GPIOx_CE,GPIO_Pin_CE,ENABLE);
+	HAL_GPIO_WritePin(_CE_PORT,_CE_PIN,ENABLE);
 	//_CE_PIN->Set();
 }
 
@@ -155,8 +156,8 @@ uint8_t NRF24L01P::nop() {
 }
 
 void NRF24L01P::Init(){
-	HAL_GPIO_WritePin(GPIOx_CE,GPIO_Pin_CE,DISABLE);
-	HAL_GPIO_WritePin(GPIOx_SS,GPIO_Pin_SS,ENABLE);
+	HAL_GPIO_WritePin(_CE_PORT,_CE_PORT,DISABLE);
+	HAL_GPIO_WritePin(_SS_PORT,_SS_PIN,ENABLE);
 //	_CE_PIN->Reset();
 //	_SS_PIN->Set();
 	delay_ms(5);
@@ -228,7 +229,8 @@ uint8_t NRF24L01P::Scan(uint8_t *buffer){
 	for(i=0;i<126;i++){
 		buffer[i]=0;
 	}
-	_CE_PIN->Set();
+	HAL_GPIO_WritePin(_CE_PORT,_CE_PORT,ENABLE);
+    //_CE_PIN->Set();
 	for(j=0;j<100;j++){
 		for(i=0;i<126;i++){
 			REG.RF_CH.RF_CH=i;
@@ -237,7 +239,7 @@ uint8_t NRF24L01P::Scan(uint8_t *buffer){
 			buffer[i]+=read_register(REG_ADDR.RPD);
 		}
 	}
-	HAL_GPIO_WritePin(GPIOx_CE,GPIO_Pin_CE,DISABLE);
+	HAL_GPIO_WritePin(_CE_PORT,_CE_PORT,DISABLE);
 	//_CE_PIN->Reset();
 	return 1;
 }
@@ -255,10 +257,10 @@ void NRF24L01P::CW(uint8_t state){
 		REG.RF_SETUP.CONT_WAVE=1;
 		REG.RF_SETUP.PLL_LOCK=1;
 		write_register(REG_ADDR.RF_SETUP, 0x9F);
-		HAL_GPIO_WritePin(GPIOx_CE,GPIO_Pin_CE,ENABLE);
+		HAL_GPIO_WritePin(_CE_PORT,_CE_PIN,ENABLE);
 		//_CE_PIN->Set();
 	} else {
-		HAL_GPIO_WritePin(GPIOx_CE,GPIO_Pin_CE,DISABLE);
+		HAL_GPIO_WritePin(_CE_PORT,_CE_PIN,DISABLE);
 		//_CE_PIN->Reset();
 		REG.CONFIG=REG_DEFAULT.CONFIG;
 		REG.RF_SETUP=REG_DEFAULT.RF_SETUP;
@@ -272,7 +274,7 @@ void NRF24L01P::StartRX(uint16_t size, uint32_t freqHz) {
 	REG.CONFIG.PRIM_RX=1;
 	REG.CONFIG.PWR_UP=1;
 	write_register(REG_ADDR.CONFIG, REG.CONFIG.value);
-	HAL_GPIO_WritePin(GPIOx_CE,GPIO_Pin_CE,ENABLE);
+	HAL_GPIO_WritePin(_CE_PORT,_CE_PIN,ENABLE);
 	//_CE_PIN->Set();
 }
 
@@ -318,7 +320,8 @@ uint8_t NRF24L01P::StartRX_ESB(uint8_t channel, uint64_t address, uint16_t size,
 
 	HAL_GPIO_WritePin(GPIOx_CE,GPIO_Pin_CE,ENABLE);
 	//_CE_PIN->Set();
-	delay_ticks(21840);//130us
+	delay_ticks(9360);
+	//delay_ticks(21840);//130us
 	return error;
 }
 
@@ -328,13 +331,15 @@ uint8_t NRF24L01P::TxPackage_ESB(uint8_t no_ack, uint8_t* data, uint16_t size){
 
 uint8_t NRF24L01P::TxPackage_ESB(uint8_t channel, uint64_t address, uint8_t no_ack, uint8_t* data, uint16_t size) {
 	uint8_t error=0;
-	_CE_PIN->Reset();
+	HAL_GPIO_WritePin(_CE_PORT,_CE_PORT,DISABLE);
+	//_CE_PIN->Reset();
 	_busy=1;
 	REG.CONFIG.value=read_register(REG_ADDR.CONFIG);
 	REG.CONFIG.PRIM_RX=0;
 	REG.CONFIG.PWR_UP=1;
 	write_register(REG_ADDR.CONFIG, REG.CONFIG.value);
-	delay_ticks(25200);//150us
+	delay_ticks(10800);
+	//delay_ticks(25200);//150us
 
 	if(size>32){
 		size=32;
@@ -360,9 +365,10 @@ uint8_t NRF24L01P::TxPackage_ESB(uint8_t channel, uint64_t address, uint8_t no_a
 	} else {
 		write_tx_payload(data, size);
 	}
-	HAL_GPIO_WritePin(GPIOx_CE,GPIO_Pin_CE,ENABLE);
+	HAL_GPIO_WritePin(_CE_PORT,_CE_PIN,ENABLE);
 	//_CE_PIN->Set();
-	delay_ticks(2520); //15us
+	delay_ticks(1080);
+	//delay_ticks(2520); //15us
 	return error;
 }
 
@@ -410,7 +416,7 @@ void NRF24L01P::InterruptCallback(){
 		}
 		if(REG.STATUS.TX_DS||(REG.FIFO_STATUS.TX_EMPTY&&(_busy==1))){
 			_transmit_irq_count++;
-			HAL_GPIO_WritePin(GPIOx_CE,GPIO_Pin_CE,ENABLE);
+			HAL_GPIO_WritePin(_CE_PORT,_CE_PIN,ENABLE);
 			//_CE_PIN->Reset();
 			if(REG.STATUS.RX_DR){
 				REG.STATUS.value=0;

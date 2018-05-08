@@ -1,7 +1,7 @@
-#include<stm32f1xx_hal_spi.h>
-#include <stm32f1xx_hal.h>
-#include <spi_stm32f103.h>
-#include<stm32f103xb.h>
+#include"stm32f1xx_hal_spi.h"
+#include "stm32f1xx_hal.h"
+#include "spi_stm32f103.h"
+#include "stm32f103xb.h"
 
 const uint32_t SPI_STM32::SPI_TIMEOUT=0x4000;
 
