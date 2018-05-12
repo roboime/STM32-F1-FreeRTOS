@@ -385,7 +385,7 @@ static void MX_TIM1_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 250;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -396,7 +396,7 @@ static void MX_TIM1_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 500;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -480,7 +480,7 @@ static void MX_TIM3_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 750;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
@@ -488,7 +488,7 @@ static void MX_TIM3_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 500;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -599,19 +599,18 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-  osDelay(2000);
 
-<<<<<<< HEAD:Src/main.cpp
   HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_SET);
-=======
-  HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, ENABLE);
-  HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, ENABLE);
-  HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, ENABLE);
-  HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, ENABLE);
->>>>>>> master:Src/main.c
+
+
+  htim3.Instance->CCR3=0;
+  htim3.Instance->CCR4=0;
+
+  htim1.Instance->CCR1=0;
+  htim1.Instance->CCR2=0;
 
   HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_4);
@@ -622,6 +621,7 @@ void StartDefaultTask(void const * argument)
   HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 
   HAL_TIM_Base_Start_IT(&htim1);
+
 
   for(;;)/*Não entendi direito*/
   {
@@ -634,7 +634,7 @@ void StartDefaultTask(void const * argument)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
-	static int16_t m0p=0, m1p=0,old_c0=0,old_c1=0;
+	static int16_t m1p, m2p,old_c1=0,old_c2=0;
 
 	    //valor aproximado do raio da roda, em metros
 	static const float R_roda = 0.030;
@@ -647,12 +647,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	static const float RED = 75;
 	static float CALCULO = 0.0f;
 	if(CALCULO==0.0f) CALCULO=(2*PI*R_roda/(Tempo*ENC_DIV*RED));
-	static float speed_m0= 0.0f;
 	static float speed_m1= 0.0f;
-	static float e_m0 =0.0f,e_m1=0.0f;
-	static float pwm_m0 =0.0f,pwm_m1=0.0f;
+	static float speed_m2= 0.0f;
+	static float e_m1 =0.0f,e_m2=0.0f;
+	static float pwm_m1 =0.0f,pwm_m2=0.0f;
 	static float kp=50.0f;
-<<<<<<< HEAD:Src/main.cpp
 	static float velocidade_des =.5;
 //	//SPI
 //	static float dado;
@@ -669,61 +668,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 //
 //}
 	//end of spi
-=======
-	static float velocidade_des =.188495;
-	//SPI
-	static float dado;
-
->>>>>>> master:Src/main.c
 
 
 	if(htim==&htim1){
 		static uint8_t i=0;
-		//motor 0
-//	estava assim antes	m0p=(int16_t)(htim2.Instance->CNT), acredito que esteja trocado;
-		m0p=(int16_t)(htim4.Instance->CNT);
-
-		//motor 1
-//	estava assim antes	m2p=(int16_t)(htim4.Instance->CNT), acredito que esteja trocado;
 		m1p=(int16_t)(htim2.Instance->CNT);
-		if(i% 13==1){
-			if(pwm_m0>=0.0f){
-				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, DISABLE);
-			} else {
-				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, DISABLE);
+		m2p=(int16_t)(htim4.Instance->CNT);
 
-			}
-
-			if(pwm_m1>=0.0f){
-				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, DISABLE);
-			} else {
-				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, DISABLE);
-			}
-		}
-
-		//primeiro testa e depois incrementa
 		if(i++% 13==0){
 			i=1;
-			speed_m0= CALCULO*((int16_t)(m0p-old_c0));
+//			m1p=-1;
+//			m2p=-1;
 			speed_m1= CALCULO*((int16_t)(m1p-old_c1));
-
-			e_m0= velocidade_des-speed_m0;
-			pwm_m0+=e_m0*kp;
-			if(pwm_m0>1000.0f)
-				pwm_m0=1000.0f;
-			if(pwm_m0<-1000.0f)
-				pwm_m0=-1000.0f;
-			if(pwm_m0>=0.0f){
-				htim1.Instance->CCR1=0;
-				htim1.Instance->CCR2=(uint16_t)pwm_m0;
-			} else {
-				htim1.Instance->CCR1=(uint16_t)(-pwm_m0);
-				htim1.Instance->CCR2=0;
-			}
+			speed_m2= CALCULO*((int16_t)(m2p-old_c2));
 
 
 			e_m1= velocidade_des-speed_m1;
@@ -733,15 +690,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			if(pwm_m1<-1000.0f)
 				pwm_m1=-1000.0f;
 			if(pwm_m1>=0.0f){
-<<<<<<< HEAD:Src/main.cpp
 				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_RESET);
 				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_SET);
-=======
->>>>>>> master:Src/main.c
 				htim3.Instance->CCR3=0;
 				htim3.Instance->CCR4=(uint16_t)pwm_m1;
+
 			} else {
-<<<<<<< HEAD:Src/main.cpp
 				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_SET);
 				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_RESET);
 				htim3.Instance->CCR3=(uint16_t)(-pwm_m1);
@@ -766,13 +720,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				htim1.Instance->CCR1=(uint16_t)(-pwm_m2);
 				htim1.Instance->CCR2=0;
 			}
-=======
-				htim3.Instance->CCR3=(uint16_t)(-pwm_m1);
-				htim3.Instance->CCR4=0;
-			}
-			old_c0=m0p;
->>>>>>> master:Src/main.c
 			old_c1=m1p;
+			old_c2=m2p;
 		}
 
 	}
@@ -780,7 +729,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
 /**
  * @brief  This function is executed in case of error occurrence.
- * @param  Noneb
+ * @param  None
  * @retval None
  */
 void _Error_Handler(char * file, int line)
