@@ -46,6 +46,7 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
+#include <Robo.h>
 #include "main.h"
 #include "stm32f1xx_hal.h"
 #include "cmsis_os.h"
@@ -53,7 +54,9 @@
 #include "nrf24l01p.h"
 #include "io_pin_stm32_hal.h"
 #include "spi_stm32.h"
-
+#include "proto/grSim_Commands.pb.h"
+#include "proto/pb_common.h"
+#include "proto/pb_decode.h"
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -159,10 +162,13 @@ int main(void)
   IO_Pin_STM32 nrf_irqn(IO_Pin::IO_Pin_Mode_IN, SPI2_IRQN_GPIO_Port,SPI2_IRQN_Pin);
   SPI_STM32 spinrf(hspi2, nrf_nss);
   NRF24L01P nrf(spinrf,nrf_nss,nrf_ce,nrf_irqn);
-  a=nrf.SelfTest();
-  nrf.Init();
- // nrf.Config(); // configurações : DPL OK, ACK OK, ACK_NOT OK, POWER UP OK
- ////////////////////////////////////////////
+  uint8_t id=0;  //ID
+  Robo robo(nrf,id);
+  //a=nrf.SelfTest();
+  //nrf.Init();
+  // nrf.Config(); // configurações : DPL OK, ACK OK, ACK_NOT OK, POWER UP OK
+  ////////////////////////////////////////////
+
 
 
 
@@ -591,6 +597,42 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
+
+bool pb_circularbuffer_read(pb_istream_t *stream, pb_byte_t *buf, size_t count){
+	bool result=false;
+	CircularBuffer<uint8_t> *circularbuffer=(CircularBuffer<uint8_t> *)(stream->state);
+	if(circularbuffer->Out(buf, count)==count){
+		result=true;
+	}
+	stream->bytes_left=circularbuffer->Ocupied();
+	if(stream->bytes_left==0){
+		stream->bytes_left=1; //keep it alive for pb_decode(...) function
+	}
+	return result;
+}
+
+pb_istream_t pb_istream_from_circularbuffer(CircularBuffer<uint8_t> *circularbuffer)
+{
+	pb_istream_t stream;
+	/* Cast away the const from buf without a compiler error.  We are
+	 * careful to use it only in a const manner in the callbacks.
+	 */
+	union {
+		void *state;
+		const void *c_state;
+	} state;
+	stream.callback = &pb_circularbuffer_read;
+	state.c_state = circularbuffer;
+	stream.state = state.state;
+	stream.bytes_left = 1;
+	if(stream.bytes_left==0){
+		stream.bytes_left=1; //keep it alive for pb_decode(...) function
+	}
+	stream.errmsg = NULL;
+	return stream;
+}
+
+
 /* StartDefaultTask function */
 void StartDefaultTask(void const * argument)
 {
@@ -620,6 +662,25 @@ void StartDefaultTask(void const * argument)
   {
     osDelay(500);
     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+
+
+
+
+
+    if(nrf.RxSize())
+    {					// recebe dados
+    robo.interruptReceive();
+    //robo.interruptAckPayload();
+    robo.last_packet_ms = GetLocalTime();
+    robo.controlbit = true;
+    }
+    if((GetLocalTime()-robo.last_packet_ms)>100)
+    {
+    	robo.controlbit = false;
+    }
+
+
+    /////
   }
   /* USER CODE END 5 */ 
 }
@@ -645,7 +706,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	static float e_m0 =0.0f,e_m1=0.0f;
 	static float pwm_m0 =0.0f,pwm_m1=0.0f;
 	static float kp=50.0f;
-	static float velocidade_des =.188495;
+	static float velocidade_des0 =robo._vel_m0;   //.188495;
+	static float velocidade_des1=robo._vel_m1;
 	//SPI
 	static float dado;
 
@@ -683,7 +745,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			speed_m0= CALCULO*((int16_t)(m0p-old_c0));
 			speed_m1= CALCULO*((int16_t)(m1p-old_c1));
 
-			e_m0= velocidade_des-speed_m0;
+			e_m0= velocidade_des0-speed_m0;
 			pwm_m0+=e_m0*kp;
 			if(pwm_m0>1000.0f)
 				pwm_m0=1000.0f;
@@ -698,7 +760,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			}
 
 
-			e_m1= velocidade_des-speed_m1;
+			e_m1= velocidade_des1-speed_m1;
 			pwm_m1-=e_m1*kp;
 			if(pwm_m1>1000.0f)
 				pwm_m1=1000.0f;
