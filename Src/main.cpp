@@ -754,7 +754,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	static float speed_m1= 0.0f;
 	static float e_m0 =0.0f,e_m1=0.0f;
 	static float pwm_m0 =0.0f,pwm_m1=0.0f;
-	float kp=70.0f;
+	//controle
+	int16_t hist_m0p[13], hist_m1p[13];
+	int j=0;
+	float kp = 56000.0f;
+	float ki=70.0f;
+	float kp = 7000.0f;
+	float ierror_m0=0.0f;
+	float ierror_m1=0.0f;
+	float last_error_m0[20];
+	float last_error_m1[20];
+	float derror_m0=0.0f;
+	float derror_m1=0.0f;
 	//SPI
 	static float dado;
 
@@ -767,6 +778,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		//motor 1
 		//	estava assim antes	m2p=(int16_t)(htim4.Instance->CNT), acredito que esteja trocado;
 		m1p=(int16_t)(htim2.Instance->CNT);
+		old_m0p = hist_m0p[i%13];
+		old_m1p = hist_m1p[i%13];
+		hist_m0p[i%13] = m0p;
+		hist_m1p[i%13] = m1p;
+
 		if(controlbit){
 			if(i% 13==1){
 				if(pwm_m0>=0.0f){
@@ -793,14 +809,28 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_SET);
 		}
 
-		//primeiro testa e depois incrementa
-		if(i++% 13==0){
-			i=1;
-			speed_m0= CALCULO*((int16_t)(m0p-old_c0));
-			speed_m1= CALCULO*((int16_t)(m1p-old_c1));
 
+		//primeiro testa e depois incrementa
+		//if(i++% 13==0){
+			i=(i+1)%13;
+			speed_m0= CALCULO*((int16_t)(m0p - old_m0p));
+			speed_m1= CALCULO*((int16_t)(m1p - old_m1p));
+
+			//motor 0
 			e_m0= velocidade_des0-speed_m0;
-			pwm_m0+=e_m0*kp;
+
+			for(int j = 18; j > 0; j--){
+				last_error_m0[j+1]=last_error_m0[j];
+				ierror_m0 = ierror_m0 + last_error_m0[j+1];
+			}
+			last_error_m0[0]=e_m0;
+			ierror_m0 = ierror_m0 + last_error_m0[0];
+				//if(ierror > 1000) ierror = 1000;
+				//if(ierror < -1000) ierror = -1000;
+			derror_m0=e_m0-last_error_m0[1];
+
+			pwm_m0 = kp*e_m0 + ki*ierror_m0 + kd*derror_m0;
+
 			if(pwm_m0>1000.0f)
 				pwm_m0=1000.0f;
 			if(pwm_m0<-1000.0f)
@@ -813,9 +843,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				htim1.Instance->CCR2=0;
 			}
 
-
+			//motor 1
 			e_m1= velocidade_des1-speed_m1;
-			pwm_m1-=e_m1*kp;
+
+			for(int j = 18; j > 0; j--){
+				last_error_m1[j+1]=last_error_m1[j];
+				ierror_m1 = ierror_m1 + last_error_m1[j+1];
+			}
+			last_error_m1[0]=e_m1;
+			ierror_m1 = ierror_m1 + last_error_m1[0];
+
+			derror_m1=e_m1-last_error_m1[1];
+
+			pwm_m1 = kp*e_m1 + ki*ierror_m1 + kd*derror_m1;
+
 			if(pwm_m1>1000.0f)
 				pwm_m1=1000.0f;
 			if(pwm_m1<-1000.0f)
@@ -828,11 +869,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				htim3.Instance->CCR4=0;
 			}
 
-			old_c0=m0p;
-			old_c1=m1p;
+			//old_c0=m0p;
+			//old_c1=m1p;
 		}
 
-	}
+//	}
 }
 
 /**
