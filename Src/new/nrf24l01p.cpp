@@ -365,7 +365,7 @@ void NRF24L01P::InterruptCallback(){
 //	static uint32_t led_c_time=0;
 //	static uint32_t led_d_time=0;
 
-	if(_NIRQ_PIN->Read()){
+	if(!_NIRQ_PIN->Read()){
 		REG.STATUS.value=nop();
 		REG.FIFO_STATUS.value=read_register(REG_ADDR.FIFO_STATUS);
 		if(REG.STATUS.MAX_RT){
