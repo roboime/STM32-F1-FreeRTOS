@@ -311,6 +311,7 @@ uint8_t NRF24L01P::StartRX_ESB(uint8_t channel, uint64_t address, uint16_t size,
 
 	_CE_PIN->Set();
 	delay_ticks(21840);//130us
+
 	return error;
 }
 

@@ -18,7 +18,7 @@ uint8_t delay_ms(uint32_t t_ms){
 }
 
 
-inline uint8_t delay_ticks(uint32_t ticks) {
+uint8_t delay_ticks(uint32_t ticks) {
 	while(ticks--);
 	return 1;
 }

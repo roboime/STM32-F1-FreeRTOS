@@ -21,12 +21,12 @@
 //#include "dibre.h"
 //#include "Switch.h"
 
-#include "new/grSim_Commands.pb.h"
+#include "proto/grSim_Commands.pb.h"
 #include "proto/pb_decode.h"
 #include "proto/pb_encode.h"
 //#include "radio/commands.h"
 //#include <radio/bsp.h>
-//#include <nrf24l01p.h>
+#include <nrf24l01p.h>
 #include <time_functions.h>
 
 

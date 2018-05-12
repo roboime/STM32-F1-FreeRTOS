@@ -46,7 +46,7 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
-#include <Robo.h>
+//#include <Robo.h>
 #include "main.h"
 #include "stm32f1xx_hal.h"
 #include "cmsis_os.h"
@@ -57,6 +57,7 @@
 #include "proto/grSim_Commands.pb.h"
 #include "proto/pb_common.h"
 #include "proto/pb_decode.h"
+#include <time_functions.h>
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -154,32 +155,6 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
-  int a=0;
-
-  //Declarações--
-  IO_Pin_STM32 nrf_nss(IO_Pin::IO_Pin_Mode_OUT, SPI2_NSS_GPIO_Port, SPI2_NSS_Pin);
-  IO_Pin_STM32 nrf_ce(IO_Pin::IO_Pin_Mode_OUT,SPI2_CE_GPIO_Port,SPI2_CE_Pin);
-  IO_Pin_STM32 nrf_irqn(IO_Pin::IO_Pin_Mode_IN, SPI2_IRQN_GPIO_Port,SPI2_IRQN_Pin);
-  SPI_STM32 spinrf(hspi2, nrf_nss);
-  NRF24L01P nrf(spinrf,nrf_nss,nrf_ce,nrf_irqn);
-  uint8_t id=0;  //ID
-  Robo robo(nrf,id);
-  //a=nrf.SelfTest();
-  //nrf.Init();
-  // nrf.Config(); // configurações : DPL OK, ACK OK, ACK_NOT OK, POWER UP OK
-  ////////////////////////////////////////////
-
-
-
-
-  //TESTE
-
-  a=nrf.SelfTest();
-  nrf.TxReady();
-  a=nrf.SelfTest();
-
-
-
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
@@ -632,6 +607,56 @@ pb_istream_t pb_istream_from_circularbuffer(CircularBuffer<uint8_t> *circularbuf
 	return stream;
 }
 
+uint8_t id=0;  //ID
+uint8_t channel=92;
+uint64_t address=0xE7E7E7E700;
+uint32_t last_packet_ms = 0;
+bool controlbit=false;
+grSim_Robot_Command robotcmd;
+grSim_Robot_Command robotcmd_test;
+static float velocidade_des0 =.188495;
+static float velocidade_des1=.188495;
+
+
+void processPacket(){
+//	robo.set_speed(robotcmd.veltangent, robotcmd.velnormal, robotcmd.velangular);
+	velocidade_des0=robotcmd.veltangent;
+	velocidade_des1=robotcmd.velnormal;
+
+//	if(robotcmd.kickspeedx!=0)
+//		robo.ChuteBaixo(robotcmd.kickspeedx);
+//	if(robotcmd.kickspeedz!=0)
+//		robo.HighKick(robotcmd.kickspeedz);
+//	if(robotcmd.spinner)
+//		robo.drible->Set_Vel(660);
+//	else
+//		robo.drible->Set_Vel(0);
+}
+
+void interruptReceive(NRF24L01P *_nrf24){
+    bool status=0;
+	if(_nrf24->RxSize()){
+		_nrf24->StartRX_ESB(channel, address + id, 32, 1);
+		uint8_t rxsize=_nrf24->RxSize();
+		if(rxsize>32) rxsize=32;
+		uint8_t buffer[32];
+		_nrf24->RxData(buffer, rxsize);
+		//usb_device_class_cdc_vcp.SendData((uint8_t*)buffer, rxsize);
+		pb_istream_t istream=pb_istream_from_buffer(buffer, rxsize);
+		status=pb_decode(&istream, grSim_Robot_Command_fields, &robotcmd);
+		last_packet_ms = GetLocalTime();
+		controlbit = true;
+	}
+	if(status){
+		if(robotcmd.id==id){
+			processPacket();
+		}
+	}
+	if((GetLocalTime()-last_packet_ms)>100){
+		controlbit = false;
+	}
+}
+
 
 /* StartDefaultTask function */
 void StartDefaultTask(void const * argument)
@@ -658,28 +683,45 @@ void StartDefaultTask(void const * argument)
 
   HAL_TIM_Base_Start_IT(&htim1);
 
+
+  int a=0;
+
+  //Declarações--
+  IO_Pin_STM32 nrf_nss(IO_Pin::IO_Pin_Mode_OUT, SPI2_NSS_GPIO_Port, SPI2_NSS_Pin);
+  IO_Pin_STM32 nrf_ce(IO_Pin::IO_Pin_Mode_OUT,SPI2_CE_GPIO_Port,SPI2_CE_Pin);
+  IO_Pin_STM32 nrf_irqn(IO_Pin::IO_Pin_Mode_IN, SPI2_IRQN_GPIO_Port,SPI2_IRQN_Pin);
+  SPI_STM32 spinrf(hspi2, nrf_nss);
+  NRF24L01P nrf(spinrf,nrf_nss,nrf_ce,nrf_irqn);
+//  Robo robo(nrf,id);
+  //a=nrf.SelfTest();
+  //nrf.Init();
+  // nrf.Config(); // configurações : DPL OK, ACK OK, ACK_NOT OK, POWER UP OK
+  ////////////////////////////////////////////
+
+
+
+
+  //TESTE
+
+  a=nrf.SelfTest();
+  nrf.TxReady();
+  a=nrf.SelfTest();
+
+
   for(;;)/*Não entendi direito*/
   {
     osDelay(500);
     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 
-
-
-
-
-    if(nrf.RxSize())
-    {					// recebe dados
-    robo.interruptReceive();
+    if(nrf.RxSize()){
+    	interruptReceive(&nrf);
     //robo.interruptAckPayload();
-    robo.last_packet_ms = GetLocalTime();
-    robo.controlbit = true;
+    	last_packet_ms = GetLocalTime();
+    	controlbit = true;
     }
-    if((GetLocalTime()-robo.last_packet_ms)>100)
-    {
-    	robo.controlbit = false;
+    if((GetLocalTime()-last_packet_ms)>100){
+    	controlbit = false;
     }
-
-
     /////
   }
   /* USER CODE END 5 */ 
@@ -706,8 +748,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	static float e_m0 =0.0f,e_m1=0.0f;
 	static float pwm_m0 =0.0f,pwm_m1=0.0f;
 	static float kp=50.0f;
-	static float velocidade_des0 =robo._vel_m0;   //.188495;
-	static float velocidade_des1=robo._vel_m1;
 	//SPI
 	static float dado;
 
@@ -720,23 +760,30 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		//motor 1
 //	estava assim antes	m2p=(int16_t)(htim4.Instance->CNT), acredito que esteja trocado;
 		m1p=(int16_t)(htim2.Instance->CNT);
-		if(i% 13==1){
-			if(pwm_m0>=0.0f){
-				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_SET);
-				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_RESET);
-			} else {
-				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_SET);
-				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_RESET);
+		if(controlbit){
+			if(i% 13==1){
+				if(pwm_m0>=0.0f){
+					HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_SET);
+					HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_RESET);
+				} else {
+					HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_SET);
+					HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_RESET);
 
-			}
+				}
 
-			if(pwm_m1>=0.0f){
-				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_SET);
-				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_RESET);
-			} else {
-				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_SET);
-				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_RESET);
+				if(pwm_m1>=0.0f){
+					HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_SET);
+					HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_RESET);
+				} else {
+					HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_SET);
+					HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_RESET);
+				}
 			}
+		} else {
+			HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_SET);
 		}
 
 		//primeiro testa e depois incrementa
