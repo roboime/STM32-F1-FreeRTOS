@@ -195,7 +195,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_OFF;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
@@ -219,8 +219,8 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_USB;
-  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
+//  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
   PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
@@ -356,7 +356,7 @@ static void MX_TIM1_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 250;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -367,7 +367,7 @@ static void MX_TIM1_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sConfigOC.Pulse = 500;
+  sConfigOC.Pulse = 0;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -451,7 +451,7 @@ static void MX_TIM3_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 750;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
@@ -459,7 +459,7 @@ static void MX_TIM3_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sConfigOC.Pulse = 500;
+  sConfigOC.Pulse = 0;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -570,18 +570,12 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
+  osDelay(2000);
 
-  HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, DISABLE);
+  HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, ENABLE);
   HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, ENABLE);
-  HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, DISABLE);
+  HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, ENABLE);
   HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, ENABLE);
-
-
-  htim3.Instance->CCR3=0;
-  htim3.Instance->CCR4=0;
-
-  htim1.Instance->CCR1=0;
-  htim1.Instance->CCR2=0;
 
   HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_4);
@@ -592,7 +586,6 @@ void StartDefaultTask(void const * argument)
   HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 
   HAL_TIM_Base_Start_IT(&htim1);
-
 
   for(;;)/*Não entendi direito*/
   {
@@ -605,7 +598,7 @@ void StartDefaultTask(void const * argument)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
-	static int16_t m1p, m2p,old_c1=0,old_c2=0;
+	static int16_t m0p=0, m1p=0,old_c0=0,old_c1=0;
 
 	    //valor aproximado do raio da roda, em metros
 	static const float R_roda = 0.030;
@@ -618,40 +611,64 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	static const float RED = 75;
 	static float CALCULO = 0.0f;
 	if(CALCULO==0.0f) CALCULO=(2*PI*R_roda/(Tempo*ENC_DIV*RED));
+	static float speed_m0= 0.0f;
 	static float speed_m1= 0.0f;
-	static float speed_m2= 0.0f;
-	static float e_m1 =0.0f,e_m2=0.0f;
-	static float pwm_m1 =0.0f,pwm_m2=0.0f;
+	static float e_m0 =0.0f,e_m1=0.0f;
+	static float pwm_m0 =0.0f,pwm_m1=0.0f;
 	static float kp=50.0f;
-	static float velocidade_des =.5;
+	static float velocidade_des =.188495;
 	//SPI
 	static float dado;
 
-hspi2.Instance-> CR1=(hspi2.Instance->CR1|0x0020); //SPE=1
-HAL_GPIO_WritePin(SPI2_NSS_GPIO_Port,SPI2_NSS_Pin,DISABLE); // habilitar a recepção do slave
-//hspi2.Instance->DR=2;//power up entra no modo standby I, segundo bit do reg CONFIG
-//*((int*)(0x40003800+0x0C))=0x0017;
-hspi2.Instance->DR=(uint16_t)23; // read register FIFO status 0x17
-
-if ((hspi2.Instance->SR & 0x0001)== 1)//espero terminar a recepção,  ler RX buffer not empty
-{
-	dado = hspi2.Instance->DR;
-
-}
-	//end of spi
 
 
 	if(htim==&htim1){
 		static uint8_t i=0;
-		m1p=(int16_t)(htim2.Instance->CNT);
-		m2p=(int16_t)(htim4.Instance->CNT);
+		//motor 0
+//	estava assim antes	m0p=(int16_t)(htim2.Instance->CNT), acredito que esteja trocado;
+		m0p=(int16_t)(htim4.Instance->CNT);
 
+		//motor 1
+//	estava assim antes	m2p=(int16_t)(htim4.Instance->CNT), acredito que esteja trocado;
+		m1p=(int16_t)(htim2.Instance->CNT);
+		if(i% 13==1){
+			if(pwm_m0>=0.0f){
+				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, ENABLE);
+				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, DISABLE);
+			} else {
+				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, ENABLE);
+				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, DISABLE);
+
+			}
+
+			if(pwm_m1>=0.0f){
+				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, ENABLE);
+				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, DISABLE);
+			} else {
+				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, ENABLE);
+				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, DISABLE);
+			}
+		}
+
+		//primeiro testa e depois incrementa
 		if(i++% 13==0){
 			i=1;
-//			m1p=-1;
-//			m2p=-1;
+			speed_m0= CALCULO*((int16_t)(m0p-old_c0));
 			speed_m1= CALCULO*((int16_t)(m1p-old_c1));
-			speed_m2= CALCULO*((int16_t)(m2p-old_c2));
+
+			e_m0= velocidade_des-speed_m0;
+			pwm_m0+=e_m0*kp;
+			if(pwm_m0>1000.0f)
+				pwm_m0=1000.0f;
+			if(pwm_m0<-1000.0f)
+				pwm_m0=-1000.0f;
+			if(pwm_m0>=0.0f){
+				htim1.Instance->CCR1=0;
+				htim1.Instance->CCR2=(uint16_t)pwm_m0;
+			} else {
+				htim1.Instance->CCR1=(uint16_t)(-pwm_m0);
+				htim1.Instance->CCR2=0;
+			}
 
 
 			e_m1= velocidade_des-speed_m1;
@@ -661,38 +678,14 @@ if ((hspi2.Instance->SR & 0x0001)== 1)//espero terminar a recepção,  ler RX buff
 			if(pwm_m1<-1000.0f)
 				pwm_m1=-1000.0f;
 			if(pwm_m1>=0.0f){
-				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, DISABLE);
-				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, ENABLE);
 				htim3.Instance->CCR3=0;
 				htim3.Instance->CCR4=(uint16_t)pwm_m1;
-
 			} else {
-				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, DISABLE);
 				htim3.Instance->CCR3=(uint16_t)(-pwm_m1);
 				htim3.Instance->CCR4=0;
 			}
-
-			e_m2= velocidade_des-speed_m2;
-			pwm_m2+=e_m2*kp;
-			if(pwm_m2>1000.0f)
-				pwm_m2=1000.0f;
-			if(pwm_m2<-1000.0f)
-				pwm_m2=-1000.0f;
-			if(pwm_m2>=0.0f){
-				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, DISABLE);
-				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, ENABLE);
-				htim1.Instance->CCR1=0;
-				htim1.Instance->CCR2=(uint16_t)pwm_m2;
-
-			} else {
-				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, DISABLE);
-				htim1.Instance->CCR1=(uint16_t)(-pwm_m2);
-				htim1.Instance->CCR2=0;
-			}
+			old_c0=m0p;
 			old_c1=m1p;
-			old_c2=m2p;
 		}
 
 	}
@@ -700,7 +693,7 @@ if ((hspi2.Instance->SR & 0x0001)== 1)//espero terminar a recepção,  ler RX buff
 
 /**
  * @brief  This function is executed in case of error occurrence.
- * @param  None
+ * @param  Noneb
  * @retval None
  */
 void _Error_Handler(char * file, int line)
