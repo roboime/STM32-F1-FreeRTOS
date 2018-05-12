@@ -50,6 +50,9 @@
 #include "stm32f1xx_hal.h"
 #include "cmsis_os.h"
 #include "usb_device.h"
+#include "nrf24l01p.h"
+#include "io_pin_stm32_hal.h"
+#include "spi_stm32.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -88,7 +91,7 @@ static void MX_I2C2_Init(void);
 static void MX_RTC_Init(void);
 void StartDefaultTask(void const * argument);
 
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+extern "C" void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
                                 
 
 /* USER CODE BEGIN PFP */
@@ -148,6 +151,29 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
+  int a=0;
+
+  //Declarações--
+  IO_Pin_STM32 nrf_nss(IO_Pin::IO_Pin_Mode_OUT, SPI2_NSS_GPIO_Port, SPI2_NSS_Pin);
+  IO_Pin_STM32 nrf_ce(IO_Pin::IO_Pin_Mode_OUT,SPI2_CE_GPIO_Port,SPI2_CE_Pin);
+  IO_Pin_STM32 nrf_irqn(IO_Pin::IO_Pin_Mode_IN, SPI2_IRQN_GPIO_Port,SPI2_IRQN_Pin);
+  SPI_STM32 spinrf(hspi2, nrf_nss);
+  NRF24L01P nrf(spinrf,nrf_nss,nrf_ce,nrf_irqn);
+  a=nrf.SelfTest();
+  nrf.Init();
+ // nrf.Config(); // configurações : DPL OK, ACK OK, ACK_NOT OK, POWER UP OK
+ ////////////////////////////////////////////
+
+
+
+  //TESTE
+
+  a=nrf.SelfTest();
+  nrf.TxReady();
+  a=nrf.SelfTest();
+
+
+
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
@@ -237,7 +263,10 @@ void SystemClock_Config(void)
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
+
+
 }
+
 
 /* I2C2 init function */
 static void MX_I2C2_Init(void)
@@ -315,7 +344,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4; // para Freq< 10 Mhz
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -572,10 +601,10 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   osDelay(2000);
 
-  HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, ENABLE);
-  HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, ENABLE);
-  HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, ENABLE);
-  HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, ENABLE);
+  HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_SET);
 
   HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_4);
@@ -620,8 +649,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	//SPI
 	static float dado;
 
-
-
 	if(htim==&htim1){
 		static uint8_t i=0;
 		//motor 0
@@ -633,20 +660,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		m1p=(int16_t)(htim2.Instance->CNT);
 		if(i% 13==1){
 			if(pwm_m0>=0.0f){
-				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, DISABLE);
+				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_RESET);
 			} else {
-				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, DISABLE);
+				HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_RESET);
 
 			}
 
 			if(pwm_m1>=0.0f){
-				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, DISABLE);
+				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_RESET);
 			} else {
-				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, ENABLE);
-				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, DISABLE);
+				HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_RESET);
 			}
 		}
 
@@ -684,6 +711,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				htim3.Instance->CCR3=(uint16_t)(-pwm_m1);
 				htim3.Instance->CCR4=0;
 			}
+
 			old_c0=m0p;
 			old_c1=m1p;
 		}
