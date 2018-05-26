@@ -285,6 +285,20 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+	if(Buf[0] == '1')
+	{
+		HAL_GPIO_WritePin(H_Pin_GPIO_Port, H_Pin, GPIO_PIN_SET);
+        char data [] = "LED ON ";
+        CDC_Transmit_FS(data, strlen(data));
+	}
+
+	else if (Buf[0] == '0')
+	 {
+		HAL_GPIO_WritePin(H_Pin_GPIO_Port, H_Pin, GPIO_PIN_RESET);
+		char data [] = "LED OFF ";
+		CDC_Transmit_FS(data, strlen(data));
+	 }
+
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);

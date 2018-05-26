@@ -149,6 +149,9 @@ void DebugMon_Handler(void)
 /**
 * @brief This function handles System tick timer.
 */
+
+extern uint32_t LocalTime;
+
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
@@ -156,6 +159,8 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   osSystickHandler();
+  LocalTime++;
+
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
