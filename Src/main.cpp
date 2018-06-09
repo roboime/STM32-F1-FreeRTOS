@@ -118,8 +118,8 @@ int main(void)
 {
 
 	/* USER CODE BEGIN 1 */
-	  uint8_t data_to_send[20] = "Damogran Labs";
-	  uint16_t buff_size = 0;
+
+//	  uint16_t buff_size = 0;
 
 	/* USER CODE END 1 */
 
@@ -189,9 +189,9 @@ int main(void)
 	while (1)
 	{
 
-	    HAL_Delay(1000);
-
-	    CDC_Transmit_FS(data_to_send, 20);
+//	    HAL_Delay(1000);
+//
+//	    CDC_Transmit_FS(data_to_send, 20);
 	  }
 
 		/* USER CODE END WHILE */
@@ -587,91 +587,94 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
+// FUNÇÕES PARA PROTOBUFF
 
-//bool pb_circularbuffer_read(pb_istream_t *stream, pb_byte_t *buf, size_t count){
-//	bool result=false;
-//	CircularBuffer<uint8_t> *circularbuffer=(CircularBuffer<uint8_t> *)(stream->state);
-//	if(circularbuffer->Out(buf, count)==count){
-//		result=true;
-//	}
-//	stream->bytes_left=circularbuffer->Ocupied();
-//	if(stream->bytes_left==0){
-//		stream->bytes_left=1; //keep it alive for pb_decode(...) function
-//	}
-//	return result;
-//}
-//
-//pb_istream_t pb_istream_from_circularbuffer(CircularBuffer<uint8_t> *circularbuffer)
-//{
-//	pb_istream_t stream;
-//	/* Cast away the const from buf without a compiler error.  We are
-//	 * careful to use it only in a const manner in the callbacks.
-//	 */
-//	union {
-//		void *state;
-//		const void *c_state;
-//	} state;
-//	stream.callback = &pb_circularbuffer_read;
-//	state.c_state = circularbuffer;
-//	stream.state = state.state;
-//	stream.bytes_left = 1;
-//	if(stream.bytes_left==0){
-//		stream.bytes_left=1; //keep it alive for pb_decode(...) function
-//	}
-//	stream.errmsg = NULL;
-//	return stream;
-//}
-//
-//uint8_t id=10;  //ID
-//uint8_t channel=92;
-//uint64_t address=0xE7E7E7E700;
-//uint32_t last_packet_ms = 0;
-//bool controlbit=false;
-//grSim_Robot_Command robotcmd;
-//grSim_Robot_Command robotcmd_test;
+bool pb_circularbuffer_read(pb_istream_t *stream, pb_byte_t *buf, size_t count){
+	bool result=false;
+	CircularBuffer<uint8_t> *circularbuffer=(CircularBuffer<uint8_t> *)(stream->state);
+	if(circularbuffer->Out(buf, count)==count){
+		result=true;
+	}
+	stream->bytes_left=circularbuffer->Ocupied();
+	if(stream->bytes_left==0){
+		stream->bytes_left=1; //keep it alive for pb_decode(...) function
+	}
+	return result;
+}
+
+pb_istream_t pb_istream_from_circularbuffer(CircularBuffer<uint8_t> *circularbuffer)
+{
+	pb_istream_t stream;
+	/* Cast away the const from buf without a compiler error.  We are
+	 * careful to use it only in a const manner in the callbacks.
+	 */
+	union {
+		void *state;
+		const void *c_state;
+	} state;
+	stream.callback = &pb_circularbuffer_read;
+	state.c_state = circularbuffer;
+	stream.state = state.state;
+	stream.bytes_left = 1;
+	if(stream.bytes_left==0){
+		stream.bytes_left=1; //keep it alive for pb_decode(...) function
+	}
+	stream.errmsg = NULL;
+	return stream;
+}
+
+// Parâmetros e constantes:
+
+uint8_t id=10;  //ID
+uint8_t channel=92;
+uint64_t address=0xE7E7E7E700;
+uint32_t last_packet_ms = 0;
+bool controlbit=false;
+grSim_Robot_Command robotcmd;
+grSim_Robot_Command robotcmd_test;
 //static float velocidade_des0 =0;
 //static float velocidade_des1 =0;//.188495;
-//
-//
-//void processPacket(){
-//	//	robo.set_speed(robotcmd.veltangent, robotcmd.velnormal, robotcmd.velangular);
+
+
+void processPacket(){
+	//	robo.set_speed(robotcmd.veltangent, robotcmd.velnormal, robotcmd.velangular);
 //	velocidade_des0=robotcmd.veltangent;
 //	velocidade_des1=robotcmd.velnormal;
-//	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-//	//	if(robotcmd.kickspeedx!=0)
-//	//		robo.ChuteBaixo(robotcmd.kickspeedx);
-//	//	if(robotcmd.kickspeedz!=0)
-//	//		robo.HighKick(robotcmd.kickspeedz);
-//	//	if(robotcmd.spinner)
-//	//		robo.drible->Set_Vel(660);
-//	//	else
-//	//		robo.drible->Set_Vel(0);
-//}
-//
-//void interruptReceive(NRF24L01P *_nrf24){
-//	bool status=0;
-//	if(_nrf24->RxSize()){
-//		_nrf24->StartRX_ESB(channel, address + id, 32, 1);
-//		uint8_t rxsize=_nrf24->RxSize();
-//		if(rxsize>32) rxsize=32;
-//		uint8_t buffer[32];
-//		_nrf24->RxData(buffer, rxsize);
-//		//usb_device_class_cdc_vcp.SendData((uint8_t*)buffer, rxsize);
-//		pb_istream_t istream=pb_istream_from_buffer(buffer, rxsize);
-//		status=pb_decode(&istream, grSim_Robot_Command_fields, &robotcmd);
-//		last_packet_ms = GetLocalTime();
-//		controlbit = true;
-//	}
-//	if(status){
-//		if(robotcmd.id==id){
-//			processPacket();
-//		}
-//	}
-//	if((GetLocalTime()-last_packet_ms)>100){
-//		controlbit = false;
-//		HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin,GPIO_PIN_RESET);
-//	}
-//}
+	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	//	if(robotcmd.kickspeedx!=0)
+	//		robo.ChuteBaixo(robotcmd.kickspeedx);
+	//	if(robotcmd.kickspeedz!=0)
+	//		robo.HighKick(robotcmd.kickspeedz);
+	//	if(robotcmd.spinner)
+	//		robo.drible->Set_Vel(660);
+	//	else
+	//		robo.drible->Set_Vel(0);
+}
+
+void interruptReceive(NRF24L01P *_nrf24){
+	bool status=0;
+	if(_nrf24->RxSize()){
+		_nrf24->StartRX_ESB(channel, address + id, 32, 1);
+		uint8_t rxsize=_nrf24->RxSize();
+		if(rxsize>32) rxsize=32;
+		uint8_t buffer[32];
+		_nrf24->RxData(buffer, rxsize);
+		//usb_device_class_cdc_vcp.SendData((uint8_t*)buffer, rxsize);
+		pb_istream_t istream=pb_istream_from_buffer(buffer, rxsize);
+		status=pb_decode(&istream, grSim_Robot_Command_fields, &robotcmd);
+		last_packet_ms = GetLocalTime();
+		controlbit = true;
+	}
+	if(status){
+		if(robotcmd.id==id){
+			processPacket();
+		}
+	}
+	if((GetLocalTime()-last_packet_ms)>100){
+		controlbit = false;
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin,GPIO_PIN_RESET);
+	}
+}
 
 
 /* StartDefaultTask function */
@@ -702,57 +705,77 @@ void StartDefaultTask(void const * argument)
 
 	int a=0;
 
-	//Declarações--
-//	IO_Pin_STM32 nrf_nss(IO_Pin::IO_Pin_Mode_OUT, SPI2_NSS_GPIO_Port, SPI2_NSS_Pin);
-//	IO_Pin_STM32 nrf_ce(IO_Pin::IO_Pin_Mode_OUT,SPI2_CE_GPIO_Port,SPI2_CE_Pin);
-//	IO_Pin_STM32 nrf_irqn(IO_Pin::IO_Pin_Mode_IN, SPI2_IRQN_GPIO_Port,SPI2_IRQN_Pin);
-//	SPI_STM32 spinrf(hspi2, nrf_nss);
-//	NRF24L01P nrf(spinrf,nrf_nss,nrf_ce,nrf_irqn);
-//	//  Robo robo(nrf,id);
-//	a=nrf.SelfTest();
-//	nrf.Init();
-//	nrf.Config(); // configurações : DPL OK, ACK OK, ACK_NOT OK, POWER UP OK
-//	nrf.StartRX_ESB(channel, address + id, 32, 1);
-//	nrf.TxPackage_ESB(channel, address + id, 0,(uint8_t*) "TESTE", 5);
-//	while(nrf.Busy()){
-//		nrf.InterruptCallback();
-//	}
-//	nrf.StartRX_ESB(channel, address + id, 32, 1);
-	////////////////////////////////////////////
+//	Declarações--
+	controlbit = true;
+
+	IO_Pin_STM32 nrf_nss(IO_Pin::IO_Pin_Mode_OUT, SPI2_NSS_GPIO_Port, SPI2_NSS_Pin);
+	IO_Pin_STM32 nrf_ce(IO_Pin::IO_Pin_Mode_OUT,SPI2_CE_GPIO_Port,SPI2_CE_Pin);
+	IO_Pin_STM32 nrf_irqn(IO_Pin::IO_Pin_Mode_IN, SPI2_IRQN_GPIO_Port,SPI2_IRQN_Pin);
+	SPI_STM32 spinrf(hspi2, nrf_nss);
+	NRF24L01P nrf(spinrf,nrf_nss,nrf_ce,nrf_irqn);
+	//  Robo robo(nrf,id);
+	a=nrf.SelfTest();
+
+	nrf.Init();
+	nrf.Config(); // configurações : DPL OK, ACK OK, ACK_NOT OK, POWER UP OK
+	nrf.StartRX_ESB(channel, address + id, 32, 1);
+	nrf.TxPackage_ESB(channel, address + id, 0,(uint8_t*) "TESTE", 5);
+	while(nrf.Busy()){
+		nrf.InterruptCallback();
+	}
+	nrf.StartRX_ESB(channel, address + id, 32, 1);
+	//////////////////////////////////////////
 
 
 
 
-	//TESTE
+//	TESTE
 
-	//  a=nrf.SelfTest();
-	//  nrf.TxReady();
-	//  a=nrf.SelfTest();
+	  a=nrf.SelfTest();
+	  nrf.TxReady();
+	  a=nrf.SelfTest();
 
 
-//	for(;;)/*Não entendi direito*/
-//	{
-//		//    osDelay(500);
-//		//  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-//		nrf.InterruptCallback();
-//		if(nrf.RxSize()){
-//			interruptReceive(&nrf);
-//			//robo.interruptAckPayload();
-//			last_packet_ms = GetLocalTime();
-//			controlbit = true;
-//		}
-//		if((GetLocalTime()-last_packet_ms)>100){
-//			controlbit = false;
-//		}
-//		/////
-//	}
+	for(;;)/*Não entendi direito*/
+	{
+		//    osDelay(500);
+		//  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		nrf.InterruptCallback();
+		if(nrf.RxSize()){
+			interruptReceive(&nrf);
+			//robo.interruptAckPayload();
+			last_packet_ms = GetLocalTime();
+			controlbit = true;
+		}
+		if((GetLocalTime()-last_packet_ms)>100){
+			controlbit = false;
+		}
+		/////
+	}
 	/* USER CODE END 5 */
 }
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	bool controlbit = true;
+
 	static int16_t m0p=0, m1p=0,old_c0=0,old_c1=0;
+	static float speed_m0= 0.0f;
+	static float speed_m1= 0.0f;
+	bool controlbit = true;
+//uint8_t data_to_send[20] = "Damogran Labs";
+uint8_t buffer_to_send[64];
+
+int a=m0p*1000;
+
+
+	sprintf((char*)buffer_to_send,"%i\n ",a);
+
+
+	    CDC_Transmit_FS(buffer_to_send, strlen((const char*)buffer_to_send));
+
+//CDC_Transmit_FS(data_to_send, 20);
+
+
 
 	//valor aproximado do raio da roda, em metros
 	static const float R_roda = 0.030;
@@ -765,8 +788,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	static const float RED = 75;
 	static float CALCULO = 0.0f;
 	if(CALCULO==0.0f) CALCULO=(2*PI*R_roda/(Tempo*ENC_DIV*RED));
-	static float speed_m0= 0.0f;
-	static float speed_m1= 0.0f;
+//	static float speed_m0= 0.0f;
+//	static float speed_m1= 0.0f;
 	static float e_m0 =0.0f,e_m1=0.0f;
 	static float pwm_m0 =0.0f,pwm_m1=0.0f;
 	//controle
@@ -784,8 +807,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	float derror_m1=0.0f;
 	//SPI
 	static float dado;
-	static float velocidade_des0 =.188495;
-	static float velocidade_des1 =.188495;
+	static float velocidade_des0 =.05495;
+	static float velocidade_des1 =.0;
+	static int i;
 	if(htim==&htim1){
 		static uint8_t i=0;
 		//motor 0
@@ -801,8 +825,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		hist_m0p[i%13] = m0p;
 		hist_m1p[i%13] = m1p;
 
-		if( controlbit){
-//			if(i% 13==1){
+	if( controlbit){
+//		if(i% 13==1){
 				if(pwm_m0>=0.0f){
 					HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_SET);
 					HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_RESET);
@@ -819,7 +843,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 					HAL_GPIO_WritePin(M1_MAH_GPIO_Port, M1_MAH_Pin, GPIO_PIN_SET);
 					HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_RESET);
 				}
-//			}
+		}
 		} else {
 			HAL_GPIO_WritePin(M0_MAH_GPIO_Port, M0_MAH_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(M0_MBH_GPIO_Port, M0_MBH_Pin, GPIO_PIN_SET);
@@ -827,9 +851,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			HAL_GPIO_WritePin(M1_MBH_GPIO_Port, M1_MBH_Pin, GPIO_PIN_SET);
 		}
 
-
 		//primeiro testa e depois incrementa
-		//if(i++% 13==0){
+//		if( i++% 13==0){
+//			i=1;
+
 			speed_m0= CALCULO*((int16_t)(m0p - old_c0));
 			speed_m1= CALCULO*((int16_t)(m1p - old_c1));
 
@@ -888,7 +913,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		}
 
 //	}
-}
+
 
 /**
  * @brief  This function is executed in case of error occurrence.
