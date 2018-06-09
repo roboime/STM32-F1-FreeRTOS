@@ -59,8 +59,8 @@
 #include "proto/pb_decode.h"
 #include <time_functions.h>
 #include "usbd_cdc_if.h"
-
-
+#include "commandline.h"
+#include "usbd_cdc_if.h"
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -99,6 +99,14 @@ static void MX_I2C2_Init(void);
 static void MX_RTC_Init(void);
 void StartDefaultTask(void const * argument);
 
+
+
+
+extern CommandLine cmdline;
+
+
+
+
 extern "C" void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 
@@ -119,7 +127,7 @@ int main(void)
 
 	/* USER CODE BEGIN 1 */
 
-//	  uint16_t buff_size = 0;
+
 
 	/* USER CODE END 1 */
 
@@ -186,13 +194,14 @@ int main(void)
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
+	CircularBuffer<uint8_t> buffer(0,1024);
+uint16_t size;
 	while (1)
-	{
-
+	{		}
 //	    HAL_Delay(1000);
 //
 //	    CDC_Transmit_FS(data_to_send, 20);
-	  }
+
 
 		/* USER CODE END WHILE */
 
@@ -205,6 +214,10 @@ int main(void)
 }
 /** System Clock Configuration
  */
+
+
+
+
 void SystemClock_Config(void)
 {
 
@@ -677,6 +690,15 @@ void interruptReceive(NRF24L01P *_nrf24){
 }
 
 
+extern "C" int8_t usb_receive(uint8_t* buffer, uint32_t size){
+	if(size) {
+		CircularBuffer<uint8_t> buf(buffer,size);
+		buf.In(buffer,size);
+		cmdline.In(buf);
+	}
+
+}
+
 /* StartDefaultTask function */
 void StartDefaultTask(void const * argument)
 {
@@ -738,6 +760,18 @@ void StartDefaultTask(void const * argument)
 
 	for(;;)/*Não entendi direito*/
 	{
+
+		uint32_t size=0;
+		uint8_t buffer[32];
+			do{
+				size=cmdline.Out(buffer, 32);
+				if(size){
+//					usb_device_class_cdc_vcp.SendData(buffer, size);
+					CDC_Transmit_FS(buffer, size);
+
+				}
+			} while(size==32);
+
 		//    osDelay(500);
 		//  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		nrf.InterruptCallback();
@@ -758,6 +792,9 @@ void StartDefaultTask(void const * argument)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
+
+
+
 	static int16_t m0p=0, m1p=0,old_c0=0,old_c1=0;
 	static float speed_m0= 0.0f;
 	static float speed_m1= 0.0f;
@@ -766,12 +803,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 uint8_t buffer_to_send[64];
 
 int a=m0p*1000;
+int b=m1p*1000;
 
 
-	sprintf((char*)buffer_to_send,"%i\n ",a);
-
-
-	    CDC_Transmit_FS(buffer_to_send, strlen((const char*)buffer_to_send));
+//	sprintf((char*)buffer_to_send,"%i | %i \n",a,b);
+//
+//
+//    CDC_Transmit_FS(buffer_to_send, strlen((const char*)buffer_to_send));
 
 //CDC_Transmit_FS(data_to_send, 20);
 
@@ -808,7 +846,7 @@ int a=m0p*1000;
 	//SPI
 	static float dado;
 	static float velocidade_des0 =.05495;
-	static float velocidade_des1 =.0;
+	static float velocidade_des1 =.05495;
 	static int i;
 	if(htim==&htim1){
 		static uint8_t i=0;

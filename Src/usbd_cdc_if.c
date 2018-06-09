@@ -284,39 +284,41 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   * @param  Len: Number of data received (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
+int8_t usb_receive(uint8_t* buffer, uint32_t size);
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
-{
-  /* USER CODE BEGIN 6 */
-static float a=1.92;
+{//  /* USER CODE BEGIN 6 */
+//static float a=1.92;
+//
+////		 static float a= 1.92;
+//		uint8_t buffer_to_send[64];
+//
+//        if(Buf[0] == '1')
+//		{
+//		int b=a*100;
+//		int c=b-(b/100)*100;
+//		int d=c-(c/10)*10;
+//
+////      char data [] = "LED ON ";
+////	        CDC_Transmit_FS(data, strlen(data));
+//
+//	        sprintf((char*)buffer_to_send,"%i,%i%i ",b/100,c/10,d);
+//	   a++;
+//
+//	    CDC_Transmit_FS(buffer_to_send, strlen((const char*)buffer_to_send));
 
-//		 static float a= 1.92;
-		uint8_t buffer_to_send[64];
-
-        if(Buf[0] == '1')
-		{
-		int b=a*100;
-		int c=b-(b/100)*100;
-		int d=c-(c/10)*10;
-
-//      char data [] = "LED ON ";
-//	        CDC_Transmit_FS(data, strlen(data));
-
-	        sprintf((char*)buffer_to_send,"%i,%i%i ",b/100,c/10,d);
-	   a++;
-
-	    CDC_Transmit_FS(buffer_to_send, strlen((const char*)buffer_to_send));
 
 
-}
+//}
 
-		if (Buf[0] == '0')
-		 {
-
-			char data [] = "LED OFF ";
-			CDC_Transmit_FS(data, strlen(data));
-
-		 }
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+//		if (Buf[0] == '0')
+//		 {
+//
+//			char data [] = "LED OFF ";
+//			CDC_Transmit_FS(data, strlen(data));
+//
+//		 }
+	usb_receive(Buf,*Len);
+	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);
   /* USER CODE END 6 */
