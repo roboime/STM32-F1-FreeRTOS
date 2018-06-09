@@ -91,8 +91,6 @@
 #define M0ENCA_GPIO_Port GPIOB
 #define M0ENCB_Pin GPIO_PIN_7
 #define M0ENCB_GPIO_Port GPIOB
-#define H_Pin GPIO_PIN_9
-#define H_Pin_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */
 /**

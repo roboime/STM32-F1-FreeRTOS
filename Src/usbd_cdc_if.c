@@ -50,6 +50,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc_if.h"
 
+
 /* USER CODE BEGIN INCLUDE */
 /* USER CODE END INCLUDE */
 
@@ -166,7 +167,8 @@ USBD_CDC_ItfTypeDef USBD_Interface_fops_FS =
   CDC_Init_FS,
   CDC_DeInit_FS,
   CDC_Control_FS,
-  CDC_Receive_FS
+  CDC_Receive_FS/*Which means that “CDC_Receive_FS()” is our “packet received”
+  callback and is called automatically from USB stack, containing pointer to buffer with received data and length of received data.*/
 };
 
 /* Private functions ---------------------------------------------------------*/
@@ -285,20 +287,35 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-	if(Buf[0] == '1')
-	{
-		HAL_GPIO_WritePin(H_Pin_GPIO_Port, H_Pin, GPIO_PIN_SET);
-        char data [] = "LED ON ";
-        CDC_Transmit_FS(data, strlen(data));
-	}
+static float a=1.92;
 
-	else if (Buf[0] == '0')
-	 {
-		HAL_GPIO_WritePin(H_Pin_GPIO_Port, H_Pin, GPIO_PIN_RESET);
-		char data [] = "LED OFF ";
-		CDC_Transmit_FS(data, strlen(data));
-	 }
+//		 static float a= 1.92;
+		uint8_t buffer_to_send[64];
 
+        if(Buf[0] == '1')
+		{
+		int b=a*100;
+		int c=b-(b/100)*100;
+		int d=c-(c/10)*10;
+
+//      char data [] = "LED ON ";
+//	        CDC_Transmit_FS(data, strlen(data));
+
+	        sprintf((char*)buffer_to_send,"%i,%i%i ",b/100,c/10,d);
+	   a++;
+
+	    CDC_Transmit_FS(buffer_to_send, strlen((const char*)buffer_to_send));
+
+
+}
+
+		if (Buf[0] == '0')
+		 {
+
+			char data [] = "LED OFF ";
+			CDC_Transmit_FS(data, strlen(data));
+
+		 }
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);
