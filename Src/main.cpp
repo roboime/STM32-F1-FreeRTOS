@@ -188,16 +188,19 @@ int main(void)
 
 
 	/* Start scheduler */
-	osKernelStart();
+	osKernelStart();// faz com que o infinite loop não funcione
 
 	/* We should never get here as control is now taken by the scheduler */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
-	CircularBuffer<uint8_t> buffer(0,1024);
-uint16_t size;
+
+
 	while (1)
-	{		}
+	{
+
+
+	}
 //	    HAL_Delay(1000);
 //
 //	    CDC_Transmit_FS(data_to_send, 20);
@@ -789,23 +792,30 @@ void StartDefaultTask(void const * argument)
 	/* USER CODE END 5 */
 }
 
+int speed_usb_0;
+int speed_usb_1;
+int desired_speed0;
+int desired_speed1;
+int desired_speed;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-
-
-
-
+	static float p;
+	float velocidade_enviada0;
+	float velocidade_enviada1;
 	static int16_t m0p=0, m1p=0,old_c0=0,old_c1=0;
 	static float speed_m0= 0.0f;
 	static float speed_m1= 0.0f;
 	bool controlbit = true;
 //uint8_t data_to_send[20] = "Damogran Labs";
 uint8_t buffer_to_send[64];
+p=speed_m0*1000;
+speed_usb_0=(int)p;
+speed_usb_1=speed_m1*1000;
+velocidade_enviada0=(float)desired_speed0;
+velocidade_enviada0=(float)velocidade_enviada0/1000;
 
-int a=m0p*1000;
-int b=m1p*1000;
-
-
+velocidade_enviada1=(float)desired_speed1;
+velocidade_enviada1=(float)velocidade_enviada1/1000;
 //	sprintf((char*)buffer_to_send,"%i | %i \n",a,b);
 //
 //
@@ -845,8 +855,13 @@ int b=m1p*1000;
 	float derror_m1=0.0f;
 	//SPI
 	static float dado;
-	static float velocidade_des0 =.05495;
-	static float velocidade_des1 =.05495;
+	static float velocidade_des0 =0;
+		velocidade_des0=velocidade_enviada0;//.188495;
+
+	static float velocidade_des1 =0;
+	velocidade_des1=velocidade_enviada1;//.188495;
+
+
 	static int i;
 	if(htim==&htim1){
 		static uint8_t i=0;
