@@ -344,20 +344,20 @@ static void MX_RTC_Init(void)
 
 }
 
-/* SPI2 init function */
+/* SPI2 init function */ /*Não usei essa função*/
 static void MX_SPI2_Init(void)
 {
 
 	/* SPI2 parameter configuration*/
 	hspi2.Instance = SPI2;
-	hspi2.Init.Mode = SPI_MODE_MASTER;
-	hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-	hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-	hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-	hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+	hspi2.Init.Mode = SPI_MODE_MASTER; // Configuro microcontrolador como master
+	hspi2.Init.Direction = SPI_DIRECTION_2LINES; // Modo full duplex
+	hspi2.Init.DataSize = SPI_DATASIZE_8BIT; // Tamanho dos dados à transferir
+	hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;// Polaridade: nível em que começa o clock é baixo
+	hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;// Fase : amostragem na primeira borda
 	hspi2.Init.NSS = SPI_NSS_SOFT;
-	hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4; // para Freq< 10 Mhz
-	hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+	hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4; // para Freq< 10 Mhz (36/4)=9MHz -> APBI é a fonte
+	hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;// primeiro o bit mais significativo na transferência
 	hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
 	hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
 	hspi2.Init.CRCPolynomial = 10;
@@ -603,7 +603,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-// FUNÇÕES PARA PROTOBUFF
+// FUNÇÕES PARA PROTOBUFF /*Não usei essa função*/
 
 bool pb_circularbuffer_read(pb_istream_t *stream, pb_byte_t *buf, size_t count){
 	bool result=false;
@@ -639,7 +639,7 @@ pb_istream_t pb_istream_from_circularbuffer(CircularBuffer<uint8_t> *circularbuf
 	return stream;
 }
 
-// Parâmetros e constantes:
+// Parâmetros e constantes (Não usei)
 
 uint8_t id=10;  //ID
 uint8_t channel=92;
@@ -731,7 +731,7 @@ void StartDefaultTask(void const * argument)
 	int a=0;
 
 //	Declarações--
-	controlbit = true;
+	controlbit = true; /*esse valor é sempre true para que o algoritmo de controle de velocidade sempre funcione*/
 
 	IO_Pin_STM32 nrf_nss(IO_Pin::IO_Pin_Mode_OUT, SPI2_NSS_GPIO_Port, SPI2_NSS_Pin);
 	IO_Pin_STM32 nrf_ce(IO_Pin::IO_Pin_Mode_OUT,SPI2_CE_GPIO_Port,SPI2_CE_Pin);
@@ -761,7 +761,7 @@ void StartDefaultTask(void const * argument)
 	  a=nrf.SelfTest();
 
 
-	for(;;)/*Não entendi direito*/
+	for(;;)
 	{
 
 		uint32_t size=0;
