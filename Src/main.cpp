@@ -607,7 +607,7 @@ pb_istream_t pb_istream_from_circularbuffer(CircularBuffer<uint8_t> *circularbuf
 	return stream;
 }
 
-uint8_t id=0;  //ID
+uint8_t id=1;  //ID
 uint8_t channel=92;
 uint64_t address=0xE7E7E7E700;
 uint32_t last_packet_ms = 0;
@@ -759,7 +759,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	static float pwmh[13];
 	static float pwmh1[13];
 	static float kp = 100.0f;
-	static float ki=190.00f;
+	static float ki=165.00f;
 	static float kd = 00.0f;
 	float ierror_m0=0.0f;
 	float ierror_m1=0.0f;
