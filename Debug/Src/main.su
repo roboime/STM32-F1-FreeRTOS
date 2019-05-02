@@ -1,0 +1,6 @@
+main.c:66:6:Led_GateKeeper	8	static
+main.c:305:6:StartDefaultTask	8	static
+main.c:173:6:SystemClock_Config	96	static
+main.c:91:5:main	56	static
+main.c:325:6:HAL_TIM_PeriodElapsedCallback	0	static
+main.c:342:6:Error_Handler	0	static
